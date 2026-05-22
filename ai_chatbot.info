@@ -1,0 +1,6 @@
+name = AI Chatbot
+description = Chatbot UI block for AI Assistants.
+backdrop = 1.x
+type = module
+package = AI
+dependencies[] = ai_assistants

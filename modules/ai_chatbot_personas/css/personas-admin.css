@@ -1,0 +1,33 @@
+.chatbot-persona-card {
+  background: #f8f9fb;
+  border: 1px solid #d7dce5;
+  border-radius: 6px;
+  margin: 0.35rem 0 0;
+  padding: 1rem;
+}
+
+.chatbot-persona-card.is-custom {
+  background: #fffdf4;
+  border-color: #e0d39a;
+}
+
+.chatbot-persona-card__header {
+  margin-bottom: 0.35rem;
+}
+
+.chatbot-persona-card__label {
+  font-size: 1rem;
+}
+
+.chatbot-persona-card__description {
+  margin-bottom: 0.75rem;
+}
+
+.chatbot-persona-card__prompt {
+  background: #fff;
+  border: 1px solid #d7dce5;
+  border-radius: 4px;
+  font-family: monospace;
+  line-height: 1.45;
+  padding: 0.85rem;
+}

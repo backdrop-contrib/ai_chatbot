@@ -1,0 +1,7 @@
+name = AI Chatbot Personas
+description = Admin-configured persona controls for AI Chatbot blocks.
+backdrop = 1.x
+type = module
+package = AI
+dependencies[] = ai_chatbot
+dependencies[] = ai_assistants

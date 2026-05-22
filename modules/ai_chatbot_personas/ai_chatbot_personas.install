@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for AI Chatbot Personas.
+ */
+
+/**
+ * Implements hook_config_info().
+ */
+function ai_chatbot_personas_config_info() {
+  return [
+    'ai_chatbot_personas.settings' => [
+      'label' => t('AI Chatbot Personas settings'),
+      'group' => t('AI'),
+    ],
+  ];
+}

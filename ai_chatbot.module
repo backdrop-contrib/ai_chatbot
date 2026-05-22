@@ -1,0 +1,159 @@
+<?php
+
+/**
+ * @file
+ * Chatbot UI block module for AI Assistants.
+ */
+
+module_load_include('inc', 'ai_chatbot', 'includes/ai_chatbot.block');
+
+/**
+ * Implements hook_block_info().
+ */
+function ai_chatbot_block_info() {
+  return ai_assistants_chatbot_block_info(
+    'ai_chatbot_chat_form',
+    t('AI Chatbot'),
+    t('Place a chatbot block and choose which AI assistant it should use.')
+  );
+}
+
+/**
+ * Implements hook_block_configure().
+ */
+function ai_chatbot_block_configure($delta = '', $settings = []) {
+  return ai_assistants_chatbot_block_configure($delta, $settings, 'ai_chatbot_chat_form');
+}
+
+/**
+ * Implements hook_block_save().
+ */
+function ai_chatbot_block_save($delta = '', &$edit = []) {
+  ai_assistants_chatbot_block_save($delta, $edit, 'ai_chatbot_chat_form');
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function ai_chatbot_block_view($delta = '', $settings = [], $contexts = []) {
+  return ai_assistants_chatbot_block_view($delta, $settings, $contexts, 'ai_chatbot_chat_form');
+}
+
+/**
+ * Implements hook_block_view_alter().
+ */
+function ai_chatbot_block_view_alter(&$data, $block) {
+  ai_assistants_chatbot_block_view_alter($data, $block, 'ai_chatbot_chat_form');
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function ai_chatbot_form_layout_block_configure_form_alter(&$form, &$form_state, $form_id) {
+  if (empty($form_state['block']) || empty($form_state['block']->module) || $form_state['block']->module !== 'ai_chatbot') {
+    return;
+  }
+
+  if (isset($form['admin_label'])) {
+    $form['admin_label']['#title'] = t('Layout admin label');
+    $form['admin_label']['#collapsed'] = FALSE;
+    $form['admin_label']['#weight'] = -20;
+  }
+
+  if (isset($form['admin_label']['admin_label'])) {
+    $default_label = ai_chatbot_default_admin_label($form_state);
+    if ($default_label !== '' && empty($form['admin_label']['admin_label']['#default_value'])) {
+      $form['admin_label']['admin_label']['#default_value'] = $default_label;
+    }
+    $form['admin_label']['admin_label']['#description'] = t('Shown only in the Layout UI. Use a clear internal name such as "Homepage RAG Chatbot" or "Admin Assistant Chatbot".');
+  }
+
+  if (isset($form['admin_label']['admin_description'])) {
+    $default_description = ai_chatbot_default_admin_description($form_state);
+    if ($default_description !== '' && empty($form['admin_label']['admin_description']['#default_value'])) {
+      $form['admin_label']['admin_description']['#default_value'] = $default_description;
+    }
+    $form['admin_label']['admin_description']['#description'] = t('Optional internal note for editors. Example: "Homepage public-facing RAG chatbot" or "Admin-only assistant block".');
+  }
+
+  if (isset($form['block_settings']['ai_assistants_block']['custom_title'])) {
+    $form['block_settings']['ai_assistants_block']['custom_title']['#description'] = t('Visitor-facing title shown inside the chatbot header. Leave empty to hide it.');
+  }
+
+  if (isset($form['block_settings']['ai_assistants_block']['assistant_id'])) {
+    $form['block_settings']['ai_assistants_block']['assistant_id']['#description'] = t('Choose the assistant this specific chatbot block should talk to.');
+  }
+
+  array_unshift($form['#submit'], 'ai_chatbot_layout_block_configure_form_submit');
+}
+
+/**
+ * Submit helper to backfill admin metadata for chatbot blocks.
+ */
+function ai_chatbot_layout_block_configure_form_submit($form, &$form_state) {
+  if (empty($form_state['block']) || empty($form_state['block']->module) || $form_state['block']->module !== 'ai_chatbot') {
+    return;
+  }
+
+  if (empty($form_state['values']['admin_label'])) {
+    $label = ai_chatbot_default_admin_label($form_state);
+    if ($label !== '') {
+      $form_state['values']['admin_label'] = $label;
+    }
+  }
+
+  if (empty($form_state['values']['admin_description'])) {
+    $description = ai_chatbot_default_admin_description($form_state);
+    if ($description !== '') {
+      $form_state['values']['admin_description'] = $description;
+    }
+  }
+}
+
+/**
+ * Build default admin label from selected assistant.
+ */
+function ai_chatbot_default_admin_label(array $form_state) {
+  $assistant_id = '';
+  if (!empty($form_state['values']['block_settings']['ai_assistants_block']['assistant_id'])) {
+    $assistant_id = (string) $form_state['values']['block_settings']['ai_assistants_block']['assistant_id'];
+  }
+  elseif (!empty($form_state['block']->settings['block_settings']['assistant_id'])) {
+    $assistant_id = (string) $form_state['block']->settings['block_settings']['assistant_id'];
+  }
+
+  if ($assistant_id === '') {
+    return 'AI Chatbot';
+  }
+
+  $assistant = ai_assistants_load($assistant_id);
+  if (!empty($assistant['label'])) {
+    return (string) $assistant['label'] . ' Chatbot';
+  }
+
+  return 'AI Chatbot';
+}
+
+/**
+ * Build default admin description from selected assistant.
+ */
+function ai_chatbot_default_admin_description(array $form_state) {
+  $assistant_id = '';
+  if (!empty($form_state['values']['block_settings']['ai_assistants_block']['assistant_id'])) {
+    $assistant_id = (string) $form_state['values']['block_settings']['ai_assistants_block']['assistant_id'];
+  }
+  elseif (!empty($form_state['block']->settings['block_settings']['assistant_id'])) {
+    $assistant_id = (string) $form_state['block']->settings['block_settings']['assistant_id'];
+  }
+
+  if ($assistant_id === '') {
+    return t('Chatbot block connected to an AI assistant.');
+  }
+
+  $assistant = ai_assistants_load($assistant_id);
+  if (!empty($assistant['label'])) {
+    return t('Chatbot block connected to the %assistant assistant.', ['%assistant' => $assistant['label']]);
+  }
+
+  return t('Chatbot block connected to an AI assistant.');
+}

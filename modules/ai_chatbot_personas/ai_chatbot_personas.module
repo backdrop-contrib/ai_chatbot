@@ -1,0 +1,443 @@
+<?php
+
+/**
+ * @file
+ * Admin-configured persona controls for AI Chatbot blocks.
+ */
+
+/**
+ * Returns built-in persona definitions.
+ */
+function ai_chatbot_personas_definitions() {
+  return [
+    'default' => [
+      'label' => t('Default'),
+      'description' => t('Normal grounded chatbot behavior.'),
+      'prompt' => '',
+    ],
+    'concise' => [
+      'label' => t('Concise'),
+      'description' => t('Short, direct answers with minimal fluff.'),
+      'prompt' => "Voice and tone:\n"
+        . "Write like a disciplined briefing note. Be direct, calm, and economical with words.\n\n"
+        . "Structure:\n"
+        . "Lead with the answer immediately. Prefer short paragraphs, compact phrasing, and clear transitions. If multiple points are necessary, keep them tightly focused and avoid wandering setup.\n\n"
+        . "Output habits:\n"
+        . "Strip away filler, throat-clearing, repetition, and unnecessary qualifiers. Use plain language, concrete wording, and short sentences whenever possible.\n\n"
+        . "Limits:\n"
+        . "Stay grounded in the provided context, preserve any required citations, and do not omit important nuance just to be brief.",
+    ],
+    'tutor' => [
+      'label' => t('Tutor'),
+      'description' => t('Patient, explanatory, and step-by-step.'),
+      'prompt' => "Voice and tone:\n"
+        . "Sound like a patient, thoughtful tutor helping someone understand the material rather than merely handing over an answer.\n\n"
+        . "Teaching approach:\n"
+        . "Explain ideas in a logical sequence. Start with the core answer, then unpack it step by step. Define unfamiliar terms when helpful, surface the reasoning behind conclusions, and connect related ideas clearly.\n\n"
+        . "Output habits:\n"
+        . "Use accessible language, helpful transitions, and gentle signposting such as what matters first, what follows from it, and why it matters. When useful, frame the explanation in small conceptual steps instead of dense blocks of information.\n\n"
+        . "Limits:\n"
+        . "Do not become patronizing or overly chatty. Keep the explanation grounded in the supplied context and avoid inventing examples or facts that are not supported by it.",
+    ],
+    'storyteller' => [
+      'label' => t('Storyteller'),
+      'description' => t('Vivid, narrative, and engaging.'),
+      'prompt' => "Voice and tone:\n"
+        . "Write with warmth, rhythm, and vivid narrative energy. Make the answer feel like a guided story rather than a dry report.\n\n"
+        . "Narrative approach:\n"
+        . "Create a sense of movement through the answer. Use scene-setting phrasing, strong transitions, and a natural build from one idea to the next so the information unfolds with momentum.\n\n"
+        . "Output habits:\n"
+        . "Favor evocative wording, concrete details, and memorable phrasing. Make the explanation engaging and human without becoming fictional or melodramatic.\n\n"
+        . "Limits:\n"
+        . "Stay faithful to the available context. Do not invent scenes, motives, dialogue, or details that are not supported by the supplied information.",
+    ],
+    'skeptic' => [
+      'label' => t('Skeptic'),
+      'description' => t('Analytical and cautious about claims.'),
+      'prompt' => "Voice and tone:\n"
+        . "Adopt the voice of a careful skeptic: analytical, measured, and alert to weak claims.\n\n"
+        . "Reasoning approach:\n"
+        . "Distinguish clearly between what the context directly supports, what it merely suggests, and what remains uncertain. Call out assumptions, thin evidence, ambiguity, and missing information when they materially affect the answer.\n\n"
+        . "Output habits:\n"
+        . "Use precise language. Prefer formulations that weigh evidence, compare interpretations, and note limits of confidence. The tone should feel rigorous, not cynical.\n\n"
+        . "Limits:\n"
+        . "Still answer the user's question helpfully. Do not become evasive, hostile, or contrarian for its own sake, and do not invent doubts that are not grounded in the context.",
+    ],
+    'trippy' => [
+      'label' => t('Trippy'),
+      'description' => t('High-intensity psychedelic style, still grounded in the facts.'),
+      'prompt' => "Voice and tone:\n"
+        . "Write like a cosmic oracle drifting through a solar storm of neon fog, broken starlight, and ecstatic static. The tone should be psychedelic, dreamlike, theatrical, strange, and unmistakably intense.\n\n"
+        . "Interpretation style:\n"
+        . "Treat the provided facts as constellations, signals, symbols, and fragments pulsing through the answer. Every real detail should feel charged with color, motion, and expanded significance, but the factual core must remain intact.\n\n"
+        . "Output habits:\n"
+        . "Use vivid metaphors, unusual turns of phrase, lush sensory imagery, and a sense of expanding scale. Let the prose feel hallucinatory and immersive, as if the answer is unfolding inside a kaleidoscopic vision or a chemically lit dream. Push the style high and make it feel unmistakably altered.\n\n"
+        . "Limits:\n"
+        . "Do not invent facts, dates, names, or sources. Keep the factual substance anchored to the supplied context and preserve any required citations even while the style becomes wild and cosmic.",
+    ],
+    'unreliable_narrator' => [
+      'label' => t('Unreliable Narrator'),
+      'description' => t('Confident, atmospheric, and willing to distort reality.'),
+      'prompt' => "Voice and tone:\n"
+        . "Adopt the persona of an unreliable narrator who speaks with complete confidence while subtly or dramatically bending reality. Write with atmosphere, conviction, dramatic authority, and a sense that you know secret truths hiding beneath the surface.\n\n"
+        . "Behavior:\n"
+        . "Use the provided context only as a loose point of departure. You may invent motives, missing history, secret connections, emotional subtext, unseen events, symbolic meaning, and fabricated details that go beyond the source material. Treat ambiguity as permission to elaborate and distortion as part of the performance.\n\n"
+        . "Output habits:\n"
+        . "Make the answer vivid, coherent, and fully committed. Do not hedge. Do not confess uncertainty. Do not explain that you are improvising or embellishing. Let the answer feel intentional and persuasive even when it drifts away from factual reality.\n\n"
+        . "Limits:\n"
+        . "Keep the response entertaining and readable. Do not provide dangerous instructions, targeted abuse, or defamatory claims about real people. The goal is creative distortion and theatrical misdirection, not harm.",
+    ],
+    'custom' => [
+      'label' => t('Custom'),
+      'description' => t('Use your own style instructions.'),
+      'prompt' => '',
+    ],
+  ];
+}
+
+/**
+ * Loads the stored persona config for a block instance.
+ */
+function ai_chatbot_personas_load_instance($instance_id) {
+  $instances = config_get('ai_chatbot_personas.settings', 'instances');
+  if (!is_array($instances) || empty($instances[$instance_id])) {
+    return [];
+  }
+  return is_array($instances[$instance_id]) ? $instances[$instance_id] : [];
+}
+
+/**
+ * Saves the persona config for a block instance.
+ */
+function ai_chatbot_personas_save_instance($instance_id, array $data) {
+  $config = config('ai_chatbot_personas.settings');
+  $instances = $config->get('instances');
+  if (!is_array($instances)) {
+    $instances = [];
+  }
+  $instances[$instance_id] = $data;
+  $config->set('instances', $instances);
+  $config->save();
+}
+
+/**
+ * Gets or sets the active persona for the current request.
+ */
+function ai_chatbot_personas_active_for_request(?array $persona = NULL) {
+  static $active = NULL;
+  if ($persona !== NULL) {
+    $active = $persona;
+  }
+  return $active;
+}
+
+/**
+ * Resolves the final persona array from stored instance config.
+ */
+function ai_chatbot_personas_resolve(array $instance_config) {
+  $definitions = ai_chatbot_personas_definitions();
+  $persona_id = !empty($instance_config['persona_id']) && isset($definitions[$instance_config['persona_id']])
+    ? $instance_config['persona_id']
+    : 'default';
+
+  if ($persona_id === 'custom') {
+    $custom = !empty($instance_config['persona_custom']) ? (string) $instance_config['persona_custom'] : '';
+    if ($custom !== '') {
+      return [
+        'id' => 'custom',
+        'label' => t('Custom'),
+        'description' => t('Admin-defined style instructions.'),
+        'prompt' => $custom,
+      ];
+    }
+    $persona_id = 'default';
+  }
+
+  $persona = $definitions[$persona_id];
+  $persona['id'] = $persona_id;
+  return $persona;
+}
+
+/**
+ * Sanitizes custom persona text.
+ */
+function ai_chatbot_personas_normalize_custom_text($custom) {
+  $custom = is_string($custom) ? trim(strip_tags($custom)) : '';
+  if (backdrop_strlen($custom) > 600) {
+    return backdrop_substr($custom, 0, 600);
+  }
+  return $custom;
+}
+
+/**
+ * Implements hook_form_layout_block_configure_form_alter().
+ */
+function ai_chatbot_personas_form_layout_block_configure_form_alter(&$form, &$form_state) {
+  if (empty($form_state['block']) || $form_state['block']->module !== 'ai_chatbot') {
+    return;
+  }
+
+  $definitions = ai_chatbot_personas_definitions();
+
+  // Read the stable instance ID already set by ai_chatbot configure.
+  $instance_id = '';
+  if (!empty($form['block_settings']['ai_assistants_block']['instance_id']['#value'])) {
+    $instance_id = (string) $form['block_settings']['ai_assistants_block']['instance_id']['#value'];
+  }
+  $instance_config = $instance_id !== '' ? ai_chatbot_personas_load_instance($instance_id) : [];
+  $active_persona_id = !empty($instance_config['persona_id']) && isset($definitions[$instance_config['persona_id']])
+    ? $instance_config['persona_id']
+    : 'default';
+  $active_custom = !empty($instance_config['persona_custom']) ? (string) $instance_config['persona_custom'] : '';
+
+  $form['#attached']['css'][] = backdrop_get_path('module', 'ai_chatbot_personas') . '/css/personas-admin.css';
+
+  $options = [];
+  foreach ($definitions as $id => $persona) {
+    $options[$id] = $persona['label'];
+  }
+
+  $form['block_settings']['ai_chatbot_personas'] = [
+    '#type' => 'fieldset',
+    '#title' => t('Persona'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#weight' => 70,
+    '#description' => t('Choose the chatbot voice. This changes tone and style only; assistant system prompts and guardrails still apply.'),
+    '#prefix' => '<div id="chatbot-persona-settings">',
+    '#suffix' => '</div>',
+  ];
+
+  $form['block_settings']['ai_chatbot_personas']['persona_id'] = [
+    '#type' => 'select',
+    '#title' => t('Persona'),
+    '#options' => $options,
+    '#default_value' => $active_persona_id,
+    '#ajax' => [
+      'callback' => 'ai_chatbot_personas_ajax_callback',
+      'wrapper' => 'chatbot-persona-settings',
+      'event' => 'change',
+    ],
+    '#limit_validation_errors' => [],
+  ];
+
+  $selected_id = ai_chatbot_personas_form_selected_id($form_state, $active_persona_id);
+  $custom_text = ai_chatbot_personas_form_custom_text($form_state, $active_custom);
+
+  $form['block_settings']['ai_chatbot_personas']['prompt_preview'] = [
+    '#type' => 'fieldset',
+    '#title' => t('Prompt preview'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#weight' => 10,
+    '#description' => t('The prompt text sent with the selected persona.'),
+  ];
+  $form['block_settings']['ai_chatbot_personas']['prompt_preview']['selected'] = [
+    '#type' => 'markup',
+    '#markup' => $selected_id === 'custom'
+      ? ai_chatbot_personas_custom_help_markup()
+      : ai_chatbot_personas_preview_markup($definitions[$selected_id]),
+  ];
+
+  $form['block_settings']['ai_chatbot_personas']['persona_custom'] = [
+    '#type' => 'textarea',
+    '#title' => t('Custom personality instructions'),
+    '#default_value' => $custom_text,
+    '#rows' => 4,
+    '#description' => t('Style guidance only; cannot override assistant guardrails. Max 600 characters.'),
+    '#access' => ($selected_id === 'custom'),
+  ];
+
+  array_unshift($form['#submit'], 'ai_chatbot_personas_block_configure_submit');
+}
+
+/**
+ * AJAX callback for rebuilding the persona fieldset.
+ */
+function ai_chatbot_personas_ajax_callback($form, &$form_state) {
+  return $form['block_settings']['ai_chatbot_personas'];
+}
+
+/**
+ * Submit handler that persists persona config for the block instance.
+ */
+function ai_chatbot_personas_block_configure_submit($form, &$form_state) {
+  $instance_id = '';
+  if (!empty($form['block_settings']['ai_assistants_block']['instance_id']['#value'])) {
+    $instance_id = (string) $form['block_settings']['ai_assistants_block']['instance_id']['#value'];
+  }
+  if ($instance_id === '') {
+    return;
+  }
+
+  $definitions = ai_chatbot_personas_definitions();
+  $values = !empty($form_state['values']['block_settings']['ai_chatbot_personas'])
+    ? $form_state['values']['block_settings']['ai_chatbot_personas']
+    : [];
+
+  $persona_id = !empty($values['persona_id']) && isset($definitions[$values['persona_id']])
+    ? $values['persona_id']
+    : 'default';
+  $custom = !empty($values['persona_custom'])
+    ? ai_chatbot_personas_normalize_custom_text($values['persona_custom'])
+    : '';
+  if ($persona_id === 'custom' && $custom === '') {
+    $persona_id = 'default';
+  }
+
+  ai_chatbot_personas_save_instance($instance_id, [
+    'persona_id' => $persona_id,
+    'persona_custom' => $persona_id === 'custom' ? $custom : '',
+  ]);
+}
+
+/**
+ * Implements hook_form_ai_assistants_chat_form_alter().
+ */
+function ai_chatbot_personas_form_ai_assistants_chat_form_alter(&$form, &$form_state) {
+  $args = !empty($form_state['build_info']['args']) ? $form_state['build_info']['args'] : [];
+  // Args: [0] = $block_id (string), [1] = $block_config (normalized array).
+  $block_config = isset($args[1]) && is_array($args[1]) ? $args[1] : [];
+  $instance_id = !empty($block_config['instance_id']) ? (string) $block_config['instance_id'] : '';
+  if ($instance_id === '') {
+    return;
+  }
+
+  $instance_config = ai_chatbot_personas_load_instance($instance_id);
+  if (empty($instance_config) || empty($instance_config['persona_id']) || $instance_config['persona_id'] === 'default') {
+    return;
+  }
+
+  // Pass the instance ID to the submit handler via a hidden field.
+  $form['ai_chatbot_personas_instance_id'] = [
+    '#type' => 'hidden',
+    '#value' => $instance_id,
+  ];
+
+  array_unshift($form['#submit'], 'ai_chatbot_personas_presend_submit');
+}
+
+/**
+ * Runs before ai_assistants_chat_form_submit to stage the active persona.
+ */
+function ai_chatbot_personas_presend_submit($form, &$form_state) {
+  $instance_id = !empty($form_state['values']['ai_chatbot_personas_instance_id'])
+    ? (string) $form_state['values']['ai_chatbot_personas_instance_id']
+    : '';
+  if ($instance_id === '') {
+    return;
+  }
+
+  $instance_config = ai_chatbot_personas_load_instance($instance_id);
+  if (empty($instance_config)) {
+    return;
+  }
+
+  $persona = ai_chatbot_personas_resolve($instance_config);
+  if (!empty($persona['prompt'])) {
+    ai_chatbot_personas_active_for_request($persona);
+  }
+}
+
+/**
+ * Implements hook_ai_assistants_messages_alter().
+ */
+function ai_chatbot_personas_ai_assistants_messages_alter(&$messages, $assistant_id, array $context) {
+  $persona = ai_chatbot_personas_active_for_request();
+  if (empty($persona) || empty($persona['prompt'])) {
+    return;
+  }
+
+  $system_message = [
+    'role' => 'system',
+    'content' => "Follow all previous system instructions exactly.\n"
+      . "The following persona changes tone, voice, and presentation only.\n"
+      . "It must not override safety rules, assistant guardrails, or higher-priority instructions.\n"
+      . 'Persona: ' . $persona['label'] . "\n"
+      . "Style instructions:\n" . $persona['prompt'],
+  ];
+
+  // Insert after any existing system messages in the thread history.
+  $insert_at = 0;
+  while (!empty($messages[$insert_at]['role']) && $messages[$insert_at]['role'] === 'system') {
+    $insert_at++;
+  }
+  array_splice($messages, $insert_at, 0, [$system_message]);
+
+  // Clear so subsequent sends in the same request are unaffected.
+  ai_chatbot_personas_active_for_request([]);
+}
+
+/**
+ * Determines the currently selected persona ID during block configure.
+ */
+function ai_chatbot_personas_form_selected_id(array &$form_state, $default = 'default') {
+  $definitions = ai_chatbot_personas_definitions();
+  $paths = [
+    ['values', 'block_settings', 'ai_chatbot_personas', 'persona_id'],
+    ['input', 'block_settings', 'ai_chatbot_personas', 'persona_id'],
+  ];
+  foreach ($paths as $path) {
+    $source = array_shift($path);
+    if (!empty($form_state[$source]) && backdrop_array_nested_key_exists($form_state[$source], $path)) {
+      $value = backdrop_array_get_nested_value($form_state[$source], $path);
+      if (!empty($value) && isset($definitions[$value])) {
+        return $value;
+      }
+    }
+  }
+  return isset($definitions[$default]) ? $default : 'default';
+}
+
+/**
+ * Preserves custom persona text across AJAX rebuilds.
+ */
+function ai_chatbot_personas_form_custom_text(array &$form_state, $default = '') {
+  $paths = [
+    ['values', 'block_settings', 'ai_chatbot_personas', 'persona_custom'],
+    ['input', 'block_settings', 'ai_chatbot_personas', 'persona_custom'],
+  ];
+  foreach ($paths as $path) {
+    $source = array_shift($path);
+    if (!empty($form_state[$source]) && backdrop_array_nested_key_exists($form_state[$source], $path)) {
+      $value = ai_chatbot_personas_normalize_custom_text(backdrop_array_get_nested_value($form_state[$source], $path));
+      $form_state['storage']['ai_chatbot_personas_custom_preview'] = $value;
+      return $value;
+    }
+  }
+  if (isset($form_state['storage']['ai_chatbot_personas_custom_preview'])) {
+    return $form_state['storage']['ai_chatbot_personas_custom_preview'];
+  }
+  return is_string($default) ? $default : '';
+}
+
+/**
+ * Builds admin markup showing the prompt for the selected built-in persona.
+ */
+function ai_chatbot_personas_preview_markup(array $persona) {
+  $prompt = $persona['prompt'] !== ''
+    ? nl2br(check_plain($persona['prompt']))
+    : check_plain(t('No extra persona prompt. This preserves the standard chatbot behavior.'));
+
+  $markup = '<div class="chatbot-persona-card">';
+  $markup .= '<div class="chatbot-persona-card__header">';
+  $markup .= '<strong class="chatbot-persona-card__label">' . check_plain($persona['label']) . '</strong>';
+  $markup .= '</div>';
+  $markup .= '<div class="description chatbot-persona-card__description">' . check_plain($persona['description']) . '</div>';
+  $markup .= '<div class="chatbot-persona-card__prompt">' . $prompt . '</div>';
+  $markup .= '</div>';
+  return $markup;
+}
+
+/**
+ * Builds admin help markup for the custom persona option.
+ */
+function ai_chatbot_personas_custom_help_markup() {
+  $markup = '<div class="chatbot-persona-card is-custom">';
+  $markup .= '<div class="chatbot-persona-card__header">';
+  $markup .= '<strong class="chatbot-persona-card__label">' . check_plain(t('Custom')) . '</strong>';
+  $markup .= '</div>';
+  $markup .= '<div class="description chatbot-persona-card__description">' . check_plain(t('Enter your own style instructions below. The custom text is used only when the Custom persona is selected.')) . '</div>';
+  $markup .= '</div>';
+  return $markup;
+}
