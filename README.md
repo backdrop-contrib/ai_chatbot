@@ -14,10 +14,10 @@ It owns:
 
 Main files:
 
-- [ai_chatbot.module](/home/justink/Documents/GitHub/amafoundation-backdrop/modules/contrib/ai_agents/modules/ai_chatbot/ai_chatbot.module)
-- [includes/ai_chatbot.block.inc](/home/justink/Documents/GitHub/amafoundation-backdrop/modules/contrib/ai_agents/modules/ai_chatbot/includes/ai_chatbot.block.inc)
-- [css/chat.css](/home/justink/Documents/GitHub/amafoundation-backdrop/modules/contrib/ai_agents/modules/ai_chatbot/css/chat.css)
-- [js/chat.js](/home/justink/Documents/GitHub/amafoundation-backdrop/modules/contrib/ai_agents/modules/ai_chatbot/js/chat.js)
+- [ai_chatbot.module](ai_chatbot.module)
+- [includes/ai_chatbot.block.inc](includes/ai_chatbot.block.inc)
+- [css/chat.css](css/chat.css)
+- [js/chat.js](js/chat.js)
 
 Key idea:
 
@@ -27,9 +27,6 @@ Key idea:
 
 This module depends on `ai_assistants` for the actual assistant runtime.
 
-Related doc:
-
-- [AI Assistants and AI Chatbot Code Walkthrough](/home/justink/Documents/GitHub/amafoundation-backdrop/docs/ai-assistants-ai-chatbot-walkthrough.md)
 ## Credits
 
 - Created for Backdrop CMS by [Justin Keiser](https://github.com/keiserjb).
