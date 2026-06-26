@@ -677,7 +677,7 @@ function ai_assistants_chat_approve_submit($form, &$form_state) {
     ai_assistants_chat_set_pending($chat_instance_id, [
       'token' => (string) $result['token'],
       'agent_id' => !empty($result['pending_agent_id']) ? (string) $result['pending_agent_id'] : (!empty($result['agent_id']) ? (string) $result['agent_id'] : ''),
-      'name' => !empty($result['pending']['name']) ? (string) $result['pending']['name'] : '',
+      'name' => ai_assistants_pending_tools_summary($result),
       'thread_id' => $pending_thread_id,
       'question' => $pending_question,
     ]);
@@ -794,9 +794,19 @@ function ai_assistants_chat_form_submit($form, &$form_state) {
   $answer = '';
   $status = !empty($result['status']) ? (string) $result['status'] : 'ok';
   if ($status === 'needs_approval') {
-    $answer = !empty($result['pending']) && !empty($result['pending']['name'])
-      ? t('Approval required before running @tool.', ['@tool' => $result['pending']['name']])
-      : t('Approval required before running this request.');
+    $pending_summary = function_exists('ai_assistants_pending_tools_summary')
+      ? ai_assistants_pending_tools_summary($result)
+      : (!empty($result['pending']['name']) ? (string) $result['pending']['name'] : '');
+    $pending_count = !empty($result['pending_tools']) && is_array($result['pending_tools']) ? count($result['pending_tools']) : 1;
+    if ($pending_summary !== '' && $pending_count > 1) {
+      $answer = t('Approval required before running @count actions: @tools. Approving runs ALL of them.', ['@count' => $pending_count, '@tools' => $pending_summary]);
+    }
+    elseif ($pending_summary !== '') {
+      $answer = t('Approval required before running @tool.', ['@tool' => $pending_summary]);
+    }
+    else {
+      $answer = t('Approval required before running this request.');
+    }
   }
   elseif (!empty($result['answer'])) {
     $answer = (string) $result['answer'];
@@ -823,7 +833,7 @@ function ai_assistants_chat_form_submit($form, &$form_state) {
     ai_assistants_chat_set_pending($chat_instance_id, [
       'token' => (string) $result['token'],
       'agent_id' => !empty($result['pending_agent_id']) ? (string) $result['pending_agent_id'] : (!empty($result['agent_id']) ? (string) $result['agent_id'] : ''),
-      'name' => !empty($result['pending']['name']) ? (string) $result['pending']['name'] : '',
+      'name' => ai_assistants_pending_tools_summary($result),
       'thread_id' => !empty($result['thread_id']) ? (string) $result['thread_id'] : '',
       'question' => html_entity_decode($query, ENT_QUOTES, 'UTF-8'),
     ]);
