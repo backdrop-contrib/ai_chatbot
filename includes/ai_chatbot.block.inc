@@ -677,7 +677,7 @@ function ai_assistants_chat_approve_submit($form, &$form_state) {
     ai_assistants_chat_set_pending($chat_instance_id, [
       'token' => (string) $result['token'],
       'agent_id' => !empty($result['pending_agent_id']) ? (string) $result['pending_agent_id'] : (!empty($result['agent_id']) ? (string) $result['agent_id'] : ''),
-      'name' => ai_assistants_pending_tools_summary($result),
+      'name' => function_exists('ai_assistants_pending_tools_summary') ? ai_assistants_pending_tools_summary($result) : '',
       'thread_id' => $pending_thread_id,
       'question' => $pending_question,
     ]);
@@ -833,7 +833,7 @@ function ai_assistants_chat_form_submit($form, &$form_state) {
     ai_assistants_chat_set_pending($chat_instance_id, [
       'token' => (string) $result['token'],
       'agent_id' => !empty($result['pending_agent_id']) ? (string) $result['pending_agent_id'] : (!empty($result['agent_id']) ? (string) $result['agent_id'] : ''),
-      'name' => ai_assistants_pending_tools_summary($result),
+      'name' => function_exists('ai_assistants_pending_tools_summary') ? ai_assistants_pending_tools_summary($result) : '',
       'thread_id' => !empty($result['thread_id']) ? (string) $result['thread_id'] : '',
       'question' => html_entity_decode($query, ENT_QUOTES, 'UTF-8'),
     ]);
