@@ -505,6 +505,7 @@ function ai_assistants_chat_form($form, &$form_state, $block_id = NULL, $block_c
   $pending = ai_assistants_chat_get_pending($chat_instance_id);
   if (!empty($pending) && !empty($pending['token'])) {
     $pending_label = !empty($pending['name']) ? check_plain((string) $pending['name']) : t('this tool');
+    $pending_tool_count = !empty($pending['count']) ? (int) $pending['count'] : 1;
     $form['approval'] = [
       '#type' => 'fieldset',
       '#title' => t('Approval needed'),
@@ -531,7 +532,9 @@ function ai_assistants_chat_form($form, &$form_state, $block_id = NULL, $block_c
       '#parents' => ['pending_question'],
     ];
     $form['approval']['message'] = [
-      '#markup' => '<p>' . t('Approval required before running @tool.', ['@tool' => $pending_label]) . '</p>',
+      '#markup' => '<p>' . ($pending_tool_count > 1
+        ? t('Approval required before running @count actions: @tools. Approving runs ALL of them.', ['@count' => $pending_tool_count, '@tools' => $pending_label])
+        : t('Approval required before running @tool.', ['@tool' => $pending_label])) . '</p>',
     ];
     $form['approval']['approve'] = [
       '#type' => 'submit',
@@ -674,10 +677,15 @@ function ai_assistants_chat_approve_submit($form, &$form_state) {
 
   ai_assistants_chat_append_result($chat_instance_id, t('Approve'), $result);
   if (!empty($result['status']) && $result['status'] === 'needs_approval' && !empty($result['token'])) {
+    $pending_name = function_exists('ai_assistants_pending_tools_summary') ? ai_assistants_pending_tools_summary($result) : '';
+    if ($pending_name === '') {
+      $pending_name = !empty($result['pending']['name']) ? (string) $result['pending']['name'] : '';
+    }
     ai_assistants_chat_set_pending($chat_instance_id, [
       'token' => (string) $result['token'],
       'agent_id' => !empty($result['pending_agent_id']) ? (string) $result['pending_agent_id'] : (!empty($result['agent_id']) ? (string) $result['agent_id'] : ''),
-      'name' => function_exists('ai_assistants_pending_tools_summary') ? ai_assistants_pending_tools_summary($result) : (!empty($result['pending']['name']) ? (string) $result['pending']['name'] : ''),
+      'name' => $pending_name,
+      'count' => !empty($result['pending_tools']) && is_array($result['pending_tools']) ? count($result['pending_tools']) : 1,
       'thread_id' => $pending_thread_id,
       'question' => $pending_question,
     ]);
@@ -830,10 +838,15 @@ function ai_assistants_chat_form_submit($form, &$form_state) {
   }
 
   if ($status === 'needs_approval' && !empty($result['token'])) {
+    $pending_name = function_exists('ai_assistants_pending_tools_summary') ? ai_assistants_pending_tools_summary($result) : '';
+    if ($pending_name === '') {
+      $pending_name = !empty($result['pending']['name']) ? (string) $result['pending']['name'] : '';
+    }
     ai_assistants_chat_set_pending($chat_instance_id, [
       'token' => (string) $result['token'],
       'agent_id' => !empty($result['pending_agent_id']) ? (string) $result['pending_agent_id'] : (!empty($result['agent_id']) ? (string) $result['agent_id'] : ''),
-      'name' => function_exists('ai_assistants_pending_tools_summary') ? ai_assistants_pending_tools_summary($result) : (!empty($result['pending']['name']) ? (string) $result['pending']['name'] : ''),
+      'name' => $pending_name,
+      'count' => !empty($result['pending_tools']) && is_array($result['pending_tools']) ? count($result['pending_tools']) : 1,
       'thread_id' => !empty($result['thread_id']) ? (string) $result['thread_id'] : '',
       'question' => html_entity_decode($query, ENT_QUOTES, 'UTF-8'),
     ]);
