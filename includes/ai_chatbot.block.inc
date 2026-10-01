@@ -358,6 +358,13 @@ function ai_assistants_sanitize_answer_links($answer, array $sources) {
 }
 
 /**
+ * Backward-compatible / clean namespace wrapper for link sanitization.
+ */
+function ai_chatbot_sanitize_answer_links($answer, array $sources) {
+  return ai_assistants_sanitize_answer_links($answer, $sources);
+}
+
+/**
  * Append a canonical source list to one assistant answer.
  */
 function ai_assistants_append_rag_sources($answer, array $sources) {
@@ -435,6 +442,9 @@ function ai_assistants_chat_form($form, &$form_state, $block_id = NULL, $block_c
 
   $wrapper_id = 'chatbot-form-wrapper-' . preg_replace('/[^a-z0-9_-]+/', '-', strtolower((string) $block_id));
   $history_id = 'ai-assistant-chat-history-' . preg_replace('/[^a-z0-9_-]+/', '-', strtolower((string) $block_id));
+  // Keep AJAX controls distinct from other forms, including cached forms whose
+  // IDs were generated in a different request (for example Views bulk forms).
+  $control_id = 'ai-assistant-chat-' . preg_replace('/[^a-z0-9_-]+/', '-', strtolower((string) $block_id));
   $form['#prefix'] = '<div id="' . check_plain($wrapper_id) . '">';
   $form['#suffix'] = '</div>';
   $form['#submit'] = ['ai_assistants_chat_form_submit'];
@@ -504,7 +514,7 @@ function ai_assistants_chat_form($form, &$form_state, $block_id = NULL, $block_c
 
   $pending = ai_assistants_chat_get_pending($chat_instance_id);
   if (!empty($pending) && !empty($pending['token'])) {
-    $pending_label = !empty($pending['name']) ? check_plain((string) $pending['name']) : t('this tool');
+    $pending_label = !empty($pending['name']) ? (string) $pending['name'] : t('this tool');
     $pending_tool_count = !empty($pending['count']) ? (int) $pending['count'] : 1;
     $form['approval'] = [
       '#type' => 'fieldset',
@@ -533,11 +543,24 @@ function ai_assistants_chat_form($form, &$form_state, $block_id = NULL, $block_c
     ];
     $form['approval']['message'] = [
       '#markup' => '<p>' . ($pending_tool_count > 1
-        ? t('Approval required before running @count actions: @tools. Approving runs ALL of them.', ['@count' => $pending_tool_count, '@tools' => $pending_label])
-        : t('Approval required before running @tool.', ['@tool' => $pending_label])) . '</p>',
+        ? t('The assistant wants to make these @count changes. Nothing has been changed yet. <strong>Approve</strong> runs all of them; <strong>Deny</strong> cancels.', ['@count' => $pending_tool_count])
+        : t('The assistant wants to make this change. Nothing has been changed yet. <strong>Approve</strong> runs it; <strong>Deny</strong> cancels.')) . '</p>',
+    ];
+    if (!empty($pending['tools']) && function_exists('ai_agents_describe_pending_tools')) {
+      $form['approval']['details'] = ai_agents_describe_pending_tools($pending['tools']);
+    }
+    else {
+      // Older pending state without arguments: fall back to the action names.
+      $form['approval']['details'] = [
+        '#markup' => '<p>' . t('Actions: @tools', ['@tools' => $pending_label]) . '</p>',
+      ];
+    }
+    $form['approval']['caution'] = [
+      '#markup' => '<p class="description">' . t('Check that these match what you asked for. If the assistant read outside content (an image, a page, a submission), that content may have tried to steer it.') . '</p>',
     ];
     $form['approval']['approve'] = [
       '#type' => 'submit',
+      '#id' => $control_id . '-approve',
       '#value' => t('Approve'),
       '#name' => 'approve_pending',
       '#submit' => ['ai_assistants_chat_approve_submit'],
@@ -552,6 +575,7 @@ function ai_assistants_chat_form($form, &$form_state, $block_id = NULL, $block_c
     ];
     $form['approval']['deny'] = [
       '#type' => 'submit',
+      '#id' => $control_id . '-deny',
       '#value' => t('Deny'),
       '#name' => 'deny_pending',
       '#submit' => ['ai_assistants_chat_deny_submit'],
@@ -568,6 +592,7 @@ function ai_assistants_chat_form($form, &$form_state, $block_id = NULL, $block_c
 
   $form['query'] = [
     '#type' => 'textarea',
+    '#id' => $control_id . '-query',
     '#title' => t('Ask me a question'),
     '#title_display' => 'invisible',
     '#attributes' => [
@@ -584,6 +609,7 @@ function ai_assistants_chat_form($form, &$form_state, $block_id = NULL, $block_c
   ];
   $form['actions']['submit'] = [
     '#type' => 'submit',
+    '#id' => $control_id . '-send',
     '#value' => t('Send'),
     '#ajax' => [
       'callback' => 'ai_assistants_chat_ajax_response',
@@ -597,6 +623,7 @@ function ai_assistants_chat_form($form, &$form_state, $block_id = NULL, $block_c
   ];
   $form['actions']['clear_history_submit'] = [
     '#type' => 'submit',
+    '#id' => $control_id . '-clear-history',
     '#value' => t('Clear History'),
     '#name' => 'clear_history',
     '#ajax' => [
@@ -686,6 +713,7 @@ function ai_assistants_chat_approve_submit($form, &$form_state) {
       'agent_id' => !empty($result['pending_agent_id']) ? (string) $result['pending_agent_id'] : (!empty($result['agent_id']) ? (string) $result['agent_id'] : ''),
       'name' => $pending_name,
       'count' => !empty($result['pending_tools']) && is_array($result['pending_tools']) ? count($result['pending_tools']) : 1,
+      'tools' => !empty($result['pending_tools']) && is_array($result['pending_tools']) ? array_values($result['pending_tools']) : [],
       'thread_id' => $pending_thread_id,
       'question' => $pending_question,
     ]);
@@ -847,6 +875,7 @@ function ai_assistants_chat_form_submit($form, &$form_state) {
       'agent_id' => !empty($result['pending_agent_id']) ? (string) $result['pending_agent_id'] : (!empty($result['agent_id']) ? (string) $result['agent_id'] : ''),
       'name' => $pending_name,
       'count' => !empty($result['pending_tools']) && is_array($result['pending_tools']) ? count($result['pending_tools']) : 1,
+      'tools' => !empty($result['pending_tools']) && is_array($result['pending_tools']) ? array_values($result['pending_tools']) : [],
       'thread_id' => !empty($result['thread_id']) ? (string) $result['thread_id'] : '',
       'question' => html_entity_decode($query, ENT_QUOTES, 'UTF-8'),
     ]);

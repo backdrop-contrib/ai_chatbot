@@ -1,14 +1,15 @@
 .chatbot-persona-card {
-  background: #f8f9fb;
-  border: 1px solid #d7dce5;
+  background: var(--gin-bg-layer2, #f8f9fb);
+  color: var(--gin-color-text, inherit);
+  border: 1px solid var(--gin-border-color, #d7dce5);
   border-radius: 6px;
   margin: 0.35rem 0 0;
   padding: 1rem;
 }
 
 .chatbot-persona-card.is-custom {
-  background: #fffdf4;
-  border-color: #e0d39a;
+  background: var(--gin-status-warning-bg, #fffdf4);
+  border-color: var(--gin-color-warning, #e0d39a);
 }
 
 .chatbot-persona-card__header {
@@ -24,8 +25,8 @@
 }
 
 .chatbot-persona-card__prompt {
-  background: #fff;
-  border: 1px solid #d7dce5;
+  background: var(--gin-bg-layer, #fff);
+  border: 1px solid var(--gin-border-color, #d7dce5);
   border-radius: 4px;
   font-family: monospace;
   line-height: 1.45;
