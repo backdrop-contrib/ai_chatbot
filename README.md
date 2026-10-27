@@ -27,7 +27,19 @@ Key idea:
 
 This module depends on `ai_assistants` for the actual assistant runtime.
 
+## Issues
+
+Bugs and feature requests should be reported in the [Issue Queue](https://github.com/backdrop-contrib/ai_chatbot/issues).
+
+## Current Maintainer
+
+[Justin Keiser](https://github.com/keiserjb)
+
 ## Credits
 
 - Created for Backdrop CMS by [Justin Keiser](https://github.com/keiserjb).
 - Developed with AI assistance.
+
+## License
+
+This project is GPL v2 software. See the LICENSE.txt file in this directory for complete text.
