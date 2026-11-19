@@ -1,6 +1,30 @@
 # AI Chatbot
 
-`ai_chatbot` is the UI/block module that renders a page chatbot for one selected assistant.
+Place a chat interface on a Backdrop page and choose the AI assistant that
+answers there. Each placement maintains its own chat state.
+
+## Requirements
+
+- PHP 8.2 or later
+- `ai_assistants` module
+
+## Installation
+
+Install this module using the official [Backdrop CMS instructions](https://backdropcms.org/user-guide/modules).
+
+1. Configure an assistant at `admin/config/ai/ai-assistants`.
+2. Edit a layout and add an **AI Chatbot** block.
+3. Choose the **Assistant**, enter an optional visitor-facing **Block title**,
+   and save the block and layout.
+
+Enable the bundled **AI Chatbot Personas** submodule to set a voice or style
+for an individual block.
+
+Find setup, examples, and troubleshooting in the [project wiki](https://github.com/backdrop-contrib/ai_chatbot/wiki).
+
+## Developer reference
+
+`ai_chatbot` renders the chat UI for the selected assistant.
 
 It owns:
 
